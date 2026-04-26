@@ -1,0 +1,153 @@
+/* ─── CoReeder Tooltip Styles ─── */
+
+#coreeder-tooltip {
+  position: fixed;
+  z-index: 2147483647;
+  max-width: 420px;
+  min-width: 260px;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #e8eaed;
+  background: rgba(28, 28, 35, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  opacity: 0;
+  transform: translateY(8px) scale(0.97);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+#coreeder-tooltip.coreeder-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* Header bar */
+#coreeder-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+#coreeder-tooltip-logo {
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #7c4dff, #448aff);
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+#coreeder-tooltip-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #9aa0a6;
+  flex-grow: 1;
+}
+
+#coreeder-tooltip-close {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: #9aa0a6;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+
+#coreeder-tooltip-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e8eaed;
+}
+
+/* Body content */
+#coreeder-tooltip-body {
+  padding: 12px 16px 16px;
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+#coreeder-tooltip-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+#coreeder-tooltip-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#coreeder-tooltip-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+/* Highlighted text preview */
+#coreeder-tooltip-highlight {
+  font-size: 12px;
+  color: #a8b2ff;
+  border-left: 3px solid #7c4dff;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  background: rgba(124, 77, 255, 0.08);
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Explanation text */
+#coreeder-tooltip-explanation {
+  color: #e0e0e0;
+  line-height: 1.7;
+  word-wrap: break-word;
+}
+
+/* Loading spinner */
+.coreeder-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #9aa0a6;
+  font-size: 13px;
+}
+
+.coreeder-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(124, 77, 255, 0.25);
+  border-top-color: #7c4dff;
+  border-radius: 50%;
+  animation: coreeder-spin 0.7s linear infinite;
+}
+
+@keyframes coreeder-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error state */
+.coreeder-error {
+  color: #f28b82;
+  font-size: 13px;
+}

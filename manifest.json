@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "CoReeder",
+  "version": "1.0.0",
+  "description": "Context-aware reading assistant — explains highlighted text based on what you've already read.",
+  "permissions": ["activeTab", "contextMenus"],
+  "host_permissions": ["https://*.openai.azure.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "src/contentExtractor.js",
+        "src/scrollTracker.js",
+        "src/highlightMapper.js",
+        "src/promptBuilder.js",
+        "src/aiService.js",
+        "src/tooltip.js",
+        "src/content.js"
+      ],
+      "css": ["src/tooltip.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
