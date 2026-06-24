@@ -294,8 +294,8 @@ app.get('/api/shared/:token', (req, res) => {
 });
 
 // Start server
-app.listen(port, () => {
-    console.log(`🚀 CoReeder Backend (Bun Engine) listening at http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Backend server running on port ${port}`);
     if (!process.env.OPENAI_API_KEY) {
         console.warn('⚠️  WARNING: OPENAI_API_KEY is missing from your .env file!');
     }
