@@ -448,8 +448,8 @@
         }
 
         .screenshot-image {
-            width: 90%;
-            left: 5%;
+            width: 130%;
+            left: 35%;
         }
 
         .features-panel {
