@@ -18,7 +18,7 @@
 ## How It Works
 
 ```
-Your Browser                    CoReeder                    Azure OpenAI
+Your Browser                    CoReeder                    Groq API
     │                              │                            │
     ├─ You read article ──────────→ Extracts & tracks ─ ─ ─ ─ ─ ─
     │                              │
@@ -68,7 +68,7 @@ A: You highlighted text from a paragraph you haven't scrolled past. The extensio
 A: Most websites with article-style content (Medium, news sites, blogs). Won't work on JavaScript-heavy single-page apps without structured content.
 
 **Q: Will my reading be tracked somewhere?**
-A: No. Everything happens locally in your browser. The only thing sent to Azure OpenAI is: the text context + your highlight (for that one request). No history stored.
+A: No. Everything happens locally in your browser. The only thing sent to Groq API is: the text context + your highlight (for that one request). No history stored.
 
 **Q: Can I customize the tooltip appearance?**
 A: Yes. Edit `src/tooltip.css` to change colors, size, animations, etc.
@@ -82,7 +82,7 @@ A: You'll see an error message in the tooltip. Just try again.
 |---------|----------|
 | "Could not extract readable content" | Try a different page with structured article content |
 | "Could not identify highlighted text" | Highlight text from the article body, not headers/footers |
-| API error (401, 403) | Check Azure credentials in `background.js` |
+| API error (401, 403) | Check Groq API key in `background.js` |
 | Tooltip not showing | Reload the page (F5) and try again |
 | Extension not loading | Check `manifest.json` is valid (jsonlint.com) |
 
@@ -92,12 +92,12 @@ For production, replace the API key logic in `src/aiService.js`:
 
 ```javascript
 // Instead of:
-const API_URL = `https://${RESOURCE_NAME}.openai.azure.com/...`
+const API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 // Use:
 const API_URL = 'https://your-backend.com/api/explain'
 
-// Then your backend forwards securely to Azure OpenAI
+// Then your backend forwards securely to Groq API
 // This way your API key never leaves your server
 ```
 
@@ -112,7 +112,7 @@ highlightMapper.js   ← Finds your selection
          ↓
 promptBuilder.js     ← Builds context (respecting read position)
          ↓
-aiService.js         ← Sends to Azure OpenAI
+aiService.js         ← Sends to Groq API
          ↓
 tooltip.js           ← Shows explanation
 ```
@@ -138,7 +138,7 @@ coreeder/
 │   ├── scrollTracker.js       ← Reading progress
 │   ├── highlightMapper.js     ← Selection to paragraph
 │   ├── promptBuilder.js       ← Context assembly
-│   ├── aiService.js           ← Azure OpenAI API
+│   ├── aiService.js           ← Groq API
 │   ├── tooltip.js             ← UI display
 │   └── tooltip.css            ← Styling
 ├── icons/                     ← Extension icons

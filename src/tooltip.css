@@ -1,29 +1,44 @@
-/* ─── CoReeder Tooltip Styles ─── */
+/* ─── CoReeder Tooltip Styles (Brimble Inspired) ─── */
+
+@font-face {
+  font-family: "ABC Marfa";
+  src: url("https://cdn.brimble.com/fonts/ABCMarfaVariableVF-Trial.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ABC Marfa Mono";
+  src: url("https://cdn.brimble.com/fonts/ABCMarfaMonoVariable-Trial.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 #coreeder-tooltip {
   position: fixed;
   z-index: 2147483647;
   max-width: 420px;
-  min-width: 260px;
+  min-width: 280px;
   padding: 0;
-  border: none;
-  border-radius: 16px;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  font-family: 'ABC Marfa', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
-  line-height: 1.6;
-  color: #e8eaed;
-  background: rgba(28, 28, 35, 0.92);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  line-height: 20px;
+  letter-spacing: -0.09px;
+  color: #ffffff;
+  background: #000000;
+  box-shadow: 
+    0px 10px 40px rgba(0, 0, 0, 0.8),
+    inset 0px 1px 0px rgba(255, 255, 255, 0.1);
   opacity: 0;
   transform: translateY(8px) scale(0.97);
   transition: opacity 0.25s ease, transform 0.25s ease;
   pointer-events: none;
   overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 #coreeder-tooltip.coreeder-visible {
@@ -36,34 +51,31 @@
 #coreeder-tooltip-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 12px 16px 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-#coreeder-tooltip-logo {
-  width: 18px;
-  height: 18px;
-  background: linear-gradient(135deg, #7c4dff, #448aff);
-  border-radius: 5px;
-  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 #coreeder-tooltip-title {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: #9aa0a6;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff;
   flex-grow: 1;
 }
 
+#coreeder-tooltip-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 #coreeder-tooltip-close {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border: none;
   background: transparent;
-  color: #9aa0a6;
+  color: #888888;
   font-size: 16px;
   cursor: pointer;
   display: flex;
@@ -77,7 +89,7 @@
 
 #coreeder-tooltip-close:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #e8eaed;
+  color: #ffffff;
 }
 
 /* Body content */
@@ -104,50 +116,224 @@
 
 /* Highlighted text preview */
 #coreeder-tooltip-highlight {
+  font-family: 'ABC Marfa Mono', source-code-pro, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
-  color: #a8b2ff;
-  border-left: 3px solid #7c4dff;
-  padding: 6px 10px;
-  margin-bottom: 12px;
-  background: rgba(124, 77, 255, 0.08);
-  border-radius: 0 8px 8px 0;
-  font-style: italic;
-  max-height: 60px;
+  color: #cccccc;
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  max-height: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* Explanation text */
 #coreeder-tooltip-explanation {
-  color: #e0e0e0;
-  line-height: 1.7;
+  color: #ffffff;
+  font-weight: 400;
+  line-height: 1.6;
   word-wrap: break-word;
 }
 
-/* Loading spinner */
+/* Loading state */
 .coreeder-loading {
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: #9aa0a6;
+  gap: 12px;
+  color: #cccccc;
   font-size: 13px;
+  font-weight: 500;
 }
 
-.coreeder-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(124, 77, 255, 0.25);
-  border-top-color: #7c4dff;
-  border-radius: 50%;
-  animation: coreeder-spin 0.7s linear infinite;
-}
-
-@keyframes coreeder-spin {
-  to { transform: rotate(360deg); }
+.coreeder-loading-gif {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 /* Error state */
 .coreeder-error {
-  color: #f28b82;
+  color: #ef4444;
   font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#coreeder-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 2147483646;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.86);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+#coreeder-launcher:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.42);
+  background: #000000;
+  box-shadow:
+    0 14px 38px rgba(0, 0, 0, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+#coreeder-launcher:active {
+  transform: scale(0.96);
+}
+
+#coreeder-launcher:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 4px;
+}
+
+#coreeder-launcher img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+#coreeder-launcher-status {
+  position: absolute;
+  right: 66px;
+  bottom: 8px;
+  max-width: 180px;
+  min-height: 18px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  font-family: 'ABC Marfa', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(6px);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+#coreeder-launcher-status:not(:empty) {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+#coreeder-launcher[data-state="saving"] img {
+  animation: coreeder-launcher-pulse 0.8s ease-in-out infinite alternate;
+}
+
+#coreeder-launcher[data-state="saved"] {
+  border-color: rgba(34, 197, 94, 0.7);
+}
+
+#coreeder-launcher[data-state="error"] {
+  border-color: rgba(239, 68, 68, 0.8);
+}
+
+#coreeder-selection-tooltip {
+  position: fixed;
+  z-index: 2147483647;
+  width: 116px;
+  height: 42px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.92);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  font-family: 'ABC Marfa', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+  pointer-events: none;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    background 0.16s ease;
+}
+
+#coreeder-selection-tooltip.coreeder-selection-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+#coreeder-selection-tooltip:hover {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: #000000;
+}
+
+#coreeder-selection-tooltip:active {
+  transform: scale(0.96);
+}
+
+#coreeder-selection-tooltip:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+}
+
+#coreeder-selection-tooltip img {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+@keyframes coreeder-launcher-pulse {
+  from { transform: scale(0.94); opacity: 0.72; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 520px) {
+  #coreeder-tooltip {
+    right: 16px !important;
+    bottom: 88px !important;
+    left: 16px !important;
+    max-width: none;
+    min-width: 0;
+  }
+
+  #coreeder-launcher {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  #coreeder-launcher-status {
+    right: 58px;
+  }
 }

@@ -80,7 +80,7 @@ __coreederLastReadIndex
 | No content extracted | Page structure not recognized | Try on a different page (structured articles work best) |
 | Extension button inactive | Page uses shadow DOM or iframe content | Only works on main document content |
 | "Could not identify highlighted text" | Selected from outside main article | Select text from the article body |
-| API error 401 | Azure credentials invalid | Check `background.js` has valid local Azure settings |
+| API error 401 | Groq API key invalid | Check `background.js` has valid GROQ_API_KEY |
 | API error 429 | Rate limited | Wait a moment and retry |
 | Explanation includes future content | `lastReadIndex` not updated | Scroll before highlighting to register read position |
 
@@ -108,12 +108,11 @@ Edit `background.js`:
 temperature: 0.4,  // Lower = more factual, Higher = more creative
 ```
 
-## Azure OpenAI Configuration
+## Groq API Configuration
 
 The extension uses:
-- **Local setting:** `AZURE_RESOURCE_NAME`
-- **Model:** `gpt-4o-mini` (via deployment)
-- **Local setting:** `AZURE_API_KEY`
+- **Local setting:** `GROQ_API_KEY`
+- **Model:** `openai/gpt-oss-120b` (configurable in `background.js`)
 
 These values are stored locally in `background.js` and should stay out of Git.
 
@@ -162,13 +161,11 @@ Current manifest.json includes:
 2. Select text again
 3. Report issue with page URL
 
-### Azure API returns 401
+### Groq API returns 401
 
 **Solution:**
-1. Verify `AZURE_API_KEY` in `background.js` is correct
-2. Check endpoint URL matches Azure resource
-3. Ensure deployment name (`gpt-4o-mini`) exists
-4. Verify API version is `2024-08-01-preview`
+1. Verify `GROQ_API_KEY` in `background.js` is correct
+2. Ensure you have access to the selected model
 
 ## Production Deployment
 
@@ -185,7 +182,7 @@ Current manifest.json includes:
 ### Example backend flow:
 
 ```
-Extension → Your Backend → Azure OpenAI
+Extension → Your Backend → Groq API
                 ↑
            (securely forwards with key)
 ```
@@ -200,5 +197,5 @@ For issues:
 1. Check console errors (DevTools → Console)
 2. Verify page has structured article content
 3. Try on a different article/page
-4. Check Azure credentials are correct
+4. Check Groq API key is correct
 5. Review error messages in tooltip

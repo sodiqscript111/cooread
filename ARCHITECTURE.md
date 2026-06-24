@@ -69,8 +69,8 @@ CoReeder is a Chrome Extension that extracts article content, tracks reading pro
         └──────────────┬──────────────────────────┘
                        │
         ┌──────────────▼──────────────────────────┐
-        │  aiService.js (Azure OpenAI)            │
-        │  - Sends prompt to Azure                │
+        │  aiService.js (Groq API)                │
+        │  - Sends prompt to Groq                 │
         │  - Receives explanation                 │
         │  - Handles errors gracefully            │
         └──────────────┬──────────────────────────┘
@@ -155,21 +155,21 @@ CoReeder is a Chrome Extension that extracts article content, tracks reading pro
 ---
 
 ### 5. **aiService.js** - AI Integration
-**Responsibility:** Send prompt to Azure OpenAI, retrieve explanation
+**Responsibility:** Send prompt to Groq API, retrieve explanation
 
 **Key functions:**
 - `explainHighlight(prompt)` → Promise<string>
 
-**Azure OpenAI Configuration:**
-- **Endpoint:** `https://<your-resource>.openai.azure.com/`
-- **Deployment:** `gpt-4o-mini`
-- **API Version:** `2024-08-01-preview`
+**Groq Configuration:**
+- **Endpoint:** `https://api.groq.com/openai/v1/chat/completions`
+- **Model:** `openai/gpt-oss-120b` (configurable)
 - **Temperature:** 0.4 (low creativity for factual explanations)
 - **Max tokens:** 512
 
 **Request format:**
 ```javascript
 {
+  model: 'openai/gpt-oss-120b',
   messages: [{ role: 'user', content: prompt }],
   temperature: 0.4,
   max_tokens: 512
@@ -286,7 +286,7 @@ CoReeder is a Chrome Extension that extracts article content, tracks reading pro
 
 5. Extension explains
    └─ Tooltip shows loading state
-   └─ Queries Azure OpenAI with context
+   └─ Queries Groq API with context
    └─ Displays explanation
 
 6. User reads explanation
@@ -295,7 +295,7 @@ CoReeder is a Chrome Extension that extracts article content, tracks reading pro
 
 ## Security & Privacy
 
-- **No external trackers:** Only sends to Azure OpenAI
+- **No external trackers:** Only sends to Groq API
 - **No persistent storage:** Everything in-memory
 - **No user data:** Doesn't persist highlights or explanations
 - **No cross-domain:** Only works on current tab

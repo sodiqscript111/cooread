@@ -1,0 +1,17 @@
+{
+  "name": "coreeder-backend",
+  "version": "1.0.0",
+  "description": "Secure AI backend for the CoReeder Chrome Extension",
+  "main": "server.js",
+  "scripts": {
+    "start": "bun server.js",
+    "dev": "bun --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "openai": "^4.47.1",
+    "sqlite3": "^6.0.1"
+  }
+}

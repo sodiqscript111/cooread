@@ -14,7 +14,7 @@ const CoReederTooltip = (() => {
         tooltipEl.id = 'coreeder-tooltip';
         tooltipEl.innerHTML = `
       <div id="coreeder-tooltip-header">
-        <div id="coreeder-tooltip-logo"></div>
+        <img id="coreeder-tooltip-logo" src="${chrome.runtime.getURL('icons/riftlogo.png')}" alt="" />
         <span id="coreeder-tooltip-title">CoReeder</span>
         <button id="coreeder-tooltip-close" aria-label="Close">×</button>
       </div>
@@ -39,37 +39,21 @@ const CoReederTooltip = (() => {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') hideTooltip();
         });
+
+        // Prevent scrolling the background page when scrolling inside the tooltip
+        tooltipEl.addEventListener('wheel', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
     }
 
     /**
-     * Position the tooltip near the current selection.
+     * Position the tooltip fixed at the bottom right.
      */
     function positionTooltip() {
-        const selection = window.getSelection();
-        if (!selection || !selection.rangeCount) return;
-
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-
-        const viewW = window.innerWidth;
-        const viewH = window.innerHeight;
-        const tooltipW = tooltipEl.offsetWidth || 380;
-        const tooltipH = tooltipEl.offsetHeight || 200;
-
-        let left = rect.left + rect.width / 2 - tooltipW / 2;
-        let top = rect.bottom + 12;
-
-        // Flip above if near bottom
-        if (top + tooltipH > viewH - 20) {
-            top = rect.top - tooltipH - 12;
-        }
-
-        // Keep within horizontal bounds
-        left = Math.max(12, Math.min(left, viewW - tooltipW - 12));
-        top = Math.max(12, top);
-
-        tooltipEl.style.left = `${left}px`;
-        tooltipEl.style.top = `${top}px`;
+        tooltipEl.style.left = 'auto';
+        tooltipEl.style.top = 'auto';
+        tooltipEl.style.right = '24px';
+        tooltipEl.style.bottom = '96px';
     }
 
     /**
@@ -90,8 +74,8 @@ const CoReederTooltip = (() => {
         highlightEl.textContent = `"${previewText}"`;
         explanationEl.innerHTML = `
       <div class="coreeder-loading">
-        <div class="coreeder-spinner"></div>
-        <span>Reading context and generating explanation…</span>
+        <img class="coreeder-loading-gif" src="${chrome.runtime.getURL('icons/loading.gif')}" alt="" />
+        <span>Reading context and generating explanation...</span>
       </div>
     `;
 
@@ -111,6 +95,7 @@ const CoReederTooltip = (() => {
         if (!tooltipEl) return;
         const explanationEl = tooltipEl.querySelector('#coreeder-tooltip-explanation');
         explanationEl.textContent = explanation;
+
     }
 
     /**
@@ -120,7 +105,11 @@ const CoReederTooltip = (() => {
     function showError(message) {
         if (!tooltipEl) return;
         const explanationEl = tooltipEl.querySelector('#coreeder-tooltip-explanation');
-        explanationEl.innerHTML = `<div class="coreeder-error">⚠ ${message}</div>`;
+        explanationEl.innerHTML = '';
+        const errorEl = document.createElement('div');
+        errorEl.className = 'coreeder-error';
+        errorEl.textContent = message;
+        explanationEl.appendChild(errorEl);
     }
 
     /**
