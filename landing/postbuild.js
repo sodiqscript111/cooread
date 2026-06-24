@@ -12,4 +12,5 @@ if (!fs.existsSync(buildDir)) {
 }
 
 fs.copyFileSync(path.join(__dirname, 'server.js'), path.join(buildDir, 'index.js'));
-console.log('✅ Created build/index.js wrapper for Brimble deployment.');
+fs.writeFileSync(path.join(buildDir, 'package.json'), JSON.stringify({ type: 'commonjs' }));
+console.log('✅ Created build/index.js (CommonJS) wrapper for Brimble deployment.');

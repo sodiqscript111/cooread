@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+const { spawn } = require('child_process');
 
 const port = process.env.PORT || 3000;
 console.log(`[Brimble Fix] Starting Vite preview server on port ${port}...`);
