@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Context-aware reading assistant — explains highlighted text based on what you've already read.",
   "permissions": ["activeTab", "contextMenus", "identity", "identity.email", "scripting"],
-  "host_permissions": ["<all_urls>", "https://*.openai.azure.com/*", "http://158.220.87.97/*"],
+  "host_permissions": ["<all_urls>", "https://*.openai.azure.com/*", "https://cooread.brimble.app/*"],
   "background": {
     "service_worker": "background.js"
   },

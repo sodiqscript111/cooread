@@ -4,7 +4,7 @@
 // Development backend:
 // const BACKEND_API_URL = 'http://localhost:3000/api/explain';
 // Production backend:
-const BACKEND_BASE_URL = 'http://158.220.87.97:3000';
+const BACKEND_BASE_URL = 'https://cooread.brimble.app';
 const EXPLAIN_API_URL = `${BACKEND_BASE_URL}/api/explain`;
 const SAVE_API_URL = `${BACKEND_BASE_URL}/api/articles/save`;
 const CONTENT_SCRIPT_FILES = [
