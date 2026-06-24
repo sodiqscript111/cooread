@@ -4,8 +4,8 @@
   "description": "Secure AI backend for the CoReeder Chrome Extension",
   "main": "server.js",
   "scripts": {
-    "start": "bun server.js",
-    "dev": "bun --watch server.js",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
     "build": "echo 'No build required for backend'"
   },
   "dependencies": {
@@ -13,6 +13,6 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "openai": "^4.47.1",
-    "sqlite3": "^6.0.1"
+    "pg": "^8.22.0"
   }
 }

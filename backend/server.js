@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const OpenAI = require('openai');
-const { Database } = require('bun:sqlite');
+const { Pool } = require('pg');
 const crypto = require('crypto');
 const path = require('path');
 
@@ -12,87 +12,72 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize Native Bun SQLite database
-const dbPath = path.join(__dirname, 'users.db');
-const db = new Database(dbPath);
+// Initialize Postgres connection pool
+if (!process.env.DATABASE_URL) {
+    console.error('CRITICAL: DATABASE_URL environment variable is missing.');
+    process.exit(1);
+}
 
-// Enable WAL mode for better performance
-db.exec('PRAGMA journal_mode = WAL;');
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // Required for Supabase and most managed Postgres
+});
 
 // Initialize Tables
-db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-        email TEXT PRIMARY KEY,
-        monthly_usage INTEGER DEFAULT 0,
-        last_reset_month INTEGER
-    );
-    CREATE TABLE IF NOT EXISTS articles (
-        id TEXT PRIMARY KEY,
-        url TEXT UNIQUE,
-        title TEXT,
-        summary TEXT,
-        category TEXT
-    );
-    CREATE TABLE IF NOT EXISTS user_saved_articles (
-        user_email TEXT,
-        article_id TEXT,
-        saved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (user_email, article_id)
-    );
-    CREATE TABLE IF NOT EXISTS shared_libraries (
-        share_token TEXT PRIMARY KEY,
-        user_email TEXT,
-        category TEXT
-    );
-    CREATE TABLE IF NOT EXISTS waitlist (
-        email TEXT PRIMARY KEY,
-        joined_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-`);
-
-// Prepared Statements for high performance
-const stmtGetUser = db.query('SELECT * FROM users WHERE email = $email');
-const stmtInsertUser = db.query('INSERT INTO users (email, monthly_usage, last_reset_month) VALUES ($email, 1, $month)');
-const stmtUpdateUser = db.query('UPDATE users SET monthly_usage = $usage, last_reset_month = $month WHERE email = $email');
-
-const stmtGetArticleByUrl = db.query('SELECT * FROM articles WHERE url = $url');
-const stmtInsertArticle = db.query('INSERT INTO articles (id, url, title, summary, category) VALUES ($id, $url, $title, $summary, $category)');
-
-const stmtCheckSaved = db.query('SELECT 1 FROM user_saved_articles WHERE user_email = $email AND article_id = $article_id');
-const stmtSaveUserArticle = db.query('INSERT OR IGNORE INTO user_saved_articles (user_email, article_id) VALUES ($email, $article_id)');
-
-const stmtGetDashboard = db.query(`
-    SELECT a.id, a.url, a.title, a.summary, a.category, u.saved_at 
-    FROM user_saved_articles u 
-    JOIN articles a ON u.article_id = a.id 
-    WHERE u.user_email = $email
-    ORDER BY u.saved_at DESC
-`);
-
-const stmtInsertShare = db.query('INSERT INTO shared_libraries (share_token, user_email, category) VALUES ($token, $email, $category)');
-const stmtGetShare = db.query('SELECT user_email, category FROM shared_libraries WHERE share_token = $token');
-const stmtGetSharedArticles = db.query(`
-    SELECT a.id, a.url, a.title, a.summary, a.category, u.saved_at 
-    FROM user_saved_articles u 
-    JOIN articles a ON u.article_id = a.id 
-    WHERE u.user_email = $email AND a.category = $category
-    ORDER BY u.saved_at DESC
-`);
+async function initDB() {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                email TEXT PRIMARY KEY,
+                monthly_usage INTEGER DEFAULT 0,
+                last_reset_month INTEGER
+            );
+            CREATE TABLE IF NOT EXISTS articles (
+                id TEXT PRIMARY KEY,
+                url TEXT UNIQUE,
+                title TEXT,
+                summary TEXT,
+                category TEXT
+            );
+            CREATE TABLE IF NOT EXISTS user_saved_articles (
+                user_email TEXT,
+                article_id TEXT,
+                saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_email, article_id)
+            );
+            CREATE TABLE IF NOT EXISTS shared_libraries (
+                share_token TEXT PRIMARY KEY,
+                user_email TEXT,
+                category TEXT
+            );
+            CREATE TABLE IF NOT EXISTS waitlist (
+                email TEXT PRIMARY KEY,
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log("Database initialized successfully.");
+    } catch (err) {
+        console.error("Failed to initialize database:", err);
+    }
+}
+initDB();
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY || 'dummy_key_to_prevent_crash_on_boot',
 });
 
 // Helper to check limits
 const MAX_MONTHLY_EXPLANATIONS = 50;
 
-function checkLimitAndLogUser(email) {
+async function checkLimitAndLogUser(email) {
     const currentMonth = new Date().getMonth();
-    const row = stmtGetUser.get({ $email: email });
+    
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const row = result.rows[0];
 
     if (!row) {
-        stmtInsertUser.run({ $email: email, $month: currentMonth });
+        await pool.query('INSERT INTO users (email, monthly_usage, last_reset_month) VALUES ($1, 1, $2)', [email, currentMonth]);
         return true;
     } else {
         let { monthly_usage, last_reset_month } = row;
@@ -105,7 +90,7 @@ function checkLimitAndLogUser(email) {
             return false; // Limit reached
         }
 
-        stmtUpdateUser.run({ $usage: monthly_usage + 1, $month: last_reset_month, $email: email });
+        await pool.query('UPDATE users SET monthly_usage = $1, last_reset_month = $2 WHERE email = $3', [monthly_usage + 1, last_reset_month, email]);
         return true;
     }
 }
@@ -116,11 +101,11 @@ function checkLimitAndLogUser(email) {
 
 // Health check endpoint
 app.get('/', (req, res) => {
-    res.json({ status: 'CoReeder Bun Backend is running fast!' });
+    res.json({ status: 'CoReeder Node.js + Postgres Backend is running fast!' });
 });
 
 // Waitlist Endpoint
-app.post('/api/waitlist', (req, res) => {
+app.post('/api/waitlist', async (req, res) => {
     const { email } = req.body;
     
     if (!email) {
@@ -128,12 +113,10 @@ app.post('/api/waitlist', (req, res) => {
     }
 
     try {
-        const stmt = db.prepare('INSERT INTO waitlist (email) VALUES ($email)');
-        stmt.run({ $email: email });
+        await pool.query('INSERT INTO waitlist (email) VALUES ($1)', [email]);
         res.json({ success: true, message: 'Joined waitlist successfully' });
     } catch (error) {
-        if (error.message.includes('UNIQUE constraint failed')) {
-            // Already joined
+        if (error.code === '23505') { // Postgres unique constraint violation code
             res.json({ success: true, message: 'Already on the waitlist!' });
         } else {
             console.error('Waitlist error:', error);
@@ -151,7 +134,8 @@ app.post('/api/explain', async (req, res) => {
 
         if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
-        if (!checkLimitAndLogUser(email)) {
+        const isAllowed = await checkLimitAndLogUser(email);
+        if (!isAllowed) {
             return res.status(429).json({ error: "You've reached your free limit of 50 explanations for this month! Check back next month." });
         }
 
@@ -183,7 +167,8 @@ app.post('/api/articles/save', async (req, res) => {
         if (!url || !title || !text) return res.status(400).json({ error: 'url, title, and text are required' });
 
         // Step 1: Check if article exists
-        let article = stmtGetArticleByUrl.get({ $url: url });
+        const articleResult = await pool.query('SELECT * FROM articles WHERE url = $1', [url]);
+        let article = articleResult.rows[0];
 
         // Step 2: If new article, use AI to summarize and categorize
         if (!article) {
@@ -205,19 +190,19 @@ app.post('/api/articles/save', async (req, res) => {
             const result = JSON.parse(response.choices[0].message.content);
             const articleId = crypto.randomUUID();
 
-            stmtInsertArticle.run({
-                $id: articleId,
-                $url: url,
-                $title: title,
-                $summary: result.summary || 'No summary available.',
-                $category: result.category || 'Uncategorized'
-            });
+            await pool.query(
+                'INSERT INTO articles (id, url, title, summary, category) VALUES ($1, $2, $3, $4, $5)',
+                [articleId, url, title, result.summary || 'No summary available.', result.category || 'Uncategorized']
+            );
 
             article = { id: articleId };
         }
 
         // Step 3: Link article to user
-        stmtSaveUserArticle.run({ $email: email, $article_id: article.id });
+        await pool.query(
+            'INSERT INTO user_saved_articles (user_email, article_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [email, article.id]
+        );
         
         res.json({ success: true, message: 'Article saved to your library!' });
     } catch (error) {
@@ -227,15 +212,21 @@ app.post('/api/articles/save', async (req, res) => {
 });
 
 // 2. User Dashboard Library Endpoint
-app.get('/api/dashboard/library', (req, res) => {
+app.get('/api/dashboard/library', async (req, res) => {
     try {
         const { email } = req.query;
         if (!email) return res.status(400).json({ error: 'email query parameter is required' });
 
-        const articles = stmtGetDashboard.all({ $email: email });
+        const result = await pool.query(`
+            SELECT a.id, a.url, a.title, a.summary, a.category, u.saved_at 
+            FROM user_saved_articles u 
+            JOIN articles a ON u.article_id = a.id 
+            WHERE u.user_email = $1
+            ORDER BY u.saved_at DESC
+        `, [email]);
         
         // Group by category
-        const library = articles.reduce((acc, article) => {
+        const library = result.rows.reduce((acc, article) => {
             if (!acc[article.category]) acc[article.category] = [];
             acc[article.category].push(article);
             return acc;
@@ -249,18 +240,17 @@ app.get('/api/dashboard/library', (req, res) => {
 });
 
 // 3. Share Library Category Endpoint
-app.post('/api/library/share', (req, res) => {
+app.post('/api/library/share', async (req, res) => {
     try {
         const { email, category } = req.body;
         if (!email || !category) return res.status(400).json({ error: 'email and category are required' });
 
         const shareToken = crypto.randomBytes(8).toString('hex');
         
-        stmtInsertShare.run({
-            $token: shareToken,
-            $email: email,
-            $category: category
-        });
+        await pool.query(
+            'INSERT INTO shared_libraries (share_token, user_email, category) VALUES ($1, $2, $3)',
+            [shareToken, email, category]
+        );
 
         res.json({ shareUrl: `/shared/${shareToken}` });
     } catch (error) {
@@ -270,22 +260,26 @@ app.post('/api/library/share', (req, res) => {
 });
 
 // 4. View Shared Library Endpoint
-app.get('/api/shared/:token', (req, res) => {
+app.get('/api/shared/:token', async (req, res) => {
     try {
         const { token } = req.params;
-        const shareData = stmtGetShare.get({ $token: token });
+        const shareResult = await pool.query('SELECT user_email, category FROM shared_libraries WHERE share_token = $1', [token]);
+        const shareData = shareResult.rows[0];
 
         if (!shareData) return res.status(404).json({ error: 'Shared library not found' });
 
-        const articles = stmtGetSharedArticles.all({
-            $email: shareData.user_email,
-            $category: shareData.category
-        });
+        const articlesResult = await pool.query(`
+            SELECT a.id, a.url, a.title, a.summary, a.category, u.saved_at 
+            FROM user_saved_articles u 
+            JOIN articles a ON u.article_id = a.id 
+            WHERE u.user_email = $1 AND a.category = $2
+            ORDER BY u.saved_at DESC
+        `, [shareData.user_email, shareData.category]);
 
         res.json({
             category: shareData.category,
             owner: shareData.user_email, // You might want to mask this in production
-            articles
+            articles: articlesResult.rows
         });
     } catch (error) {
         console.error('Shared Library Error:', error);
