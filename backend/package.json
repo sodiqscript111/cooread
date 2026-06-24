@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "bun server.js",
-    "dev": "bun --watch server.js"
+    "dev": "bun --watch server.js",
+    "build": "echo 'No build required for backend'"
   },
   "dependencies": {
     "cors": "^2.8.5",
