@@ -3,6 +3,14 @@ dist/
 build/
 out/
 coverage/
+.output/
+.wxt/
+.svelte-kit/
 *.log
 .DS_Store
 Thumbs.db
+
+# Env files (commit .env.example only)
+.env
+.env.*
+!.env.example

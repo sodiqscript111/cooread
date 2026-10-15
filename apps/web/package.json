@@ -1,0 +1,27 @@
+{
+	"name": "@coreeder/web",
+	"private": true,
+	"version": "2.0.0",
+	"type": "module",
+	"description": "CoReeder website: landing page, reading library and shared libraries.",
+	"scripts": {
+		"dev": "vite dev --host 0.0.0.0",
+		"build": "vite build",
+		"start": "node build",
+		"preview": "vite preview --host 0.0.0.0",
+		"prepare": "svelte-kit sync || echo ''",
+		"typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --threshold error"
+	},
+	"dependencies": {
+		"@supabase/supabase-js": "^2.75.0"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-node": "^5.5.4",
+		"@sveltejs/kit": "^2.63.0",
+		"@sveltejs/vite-plugin-svelte": "^7.1.2",
+		"svelte": "^5.56.1",
+		"svelte-check": "^4.6.0",
+		"typescript": "~5.9.3",
+		"vite": "^8.0.16"
+	}
+}

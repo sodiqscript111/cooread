@@ -1,320 +1,72 @@
-# CoReeder - Context-Aware Reading Assistant Architecture
+# Architecture
 
-## Overview
-CoReeder is a Chrome Extension that extracts article content, tracks reading progress, and explains highlighted text using only previously-read context.
+## The core idea
 
-## Architecture & Data Flow
+Explanations only use what the reader has already read. The extension knows this because it runs on the page: it extracts the article's paragraphs and tracks the furthest one the reader has reached. Nothing is crawled server-side.
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    User activates extension                   │
-└──────────────────────┬───────────────────────────────────────┘
-                       │
-        ┌──────────────▼─────────────────┐
-        │  contentExtractor.js           │
-        │  - Extracts main content       │
-        │  - Removes nav/ads/sidebars    │
-        │  - Splits into paragraphs      │
-        │  - Assigns numeric IDs         │
-        └──────────────┬─────────────────┘
-                       │
-        ┌──────────────▼─────────────────────────┐
-        │  State initialized                     │
-        │  {                                     │
-        │    paragraphs: [{id, text}, ...],     │
-        │    lastReadIndex: -1                  │
-        │  }                                     │
-        └──────────────┬─────────────────────────┘
-                       │
-        ┌──────────────▼─────────────────────────┐
-        │  scrollTracker.js                      │
-        │  - Tracks visible paragraphs           │
-        │  - Updates lastReadIndex               │
-        │  - Uses IntersectionObserver (50%)     │
-        └──────────────┬─────────────────────────┘
-                       │
-              User scrolls & reads
-                       │
-        ┌──────────────▼──────────────────────┐
-        │  User highlights text               │
-        │  Right-click → Explain with CoReeder│
-        └──────────────┬──────────────────────┘
-                       │
-        ┌──────────────▼──────────────────────────┐
-        │  background.js (message relay)          │
-        │  - Receives context menu click          │
-        │  - Sends EXPLAIN_SELECTION to content   │
-        └──────────────┬──────────────────────────┘
-                       │
-        ┌──────────────▼──────────────────────────┐
-        │  highlightMapper.js                     │
-        │  - Identifies highlighted text          │
-        │  - Maps to paragraph index              │
-        │  - Returns: text + highlightIndex       │
-        └──────────────┬──────────────────────────┘
-                       │
-        ┌──────────────▼──────────────────────────┐
-        │  promptBuilder.js                       │
-        │  - Builds context from prior paragraphs │
-        │  - Respects lastReadIndex (no future!)  │
-        │  - Limits to MAX_PRIOR_PARAGRAPHS (30)  │
-        │  - Includes highlighted text            │
-        │  - Adds limited forward context         │
-        └──────────────┬──────────────────────────┘
-                       │
-        ┌──────────────▼──────────────────────────┐
-        │  tooltip.js (showLoading)               │
-        │  - Displays loading state                │
-        │  - Positions near selection              │
-        └──────────────┬──────────────────────────┘
-                       │
-        ┌──────────────▼──────────────────────────┐
-        │  aiService.js (Groq API)                │
-        │  - Sends prompt to Groq                 │
-        │  - Receives explanation                 │
-        │  - Handles errors gracefully            │
-        └──────────────┬──────────────────────────┘
-                       │
-        ┌──────────────▼──────────────────────────┐
-        │  tooltip.js (showExplanation)           │
-        │  - Updates tooltip with response        │
-        │  - User can close or read more          │
-        └──────────────────────────────────────────┘
-```
-
-## Module Structure
-
-### 1. **contentExtractor.js** - Text Extraction
-**Responsibility:** Extract main readable content, remove noise, parse into paragraphs
-
-**Key functions:**
-- `extractContent()` → `{ paragraphs: string[], paragraphElements: Element[] }`
-
-**Noise removal:**
-- Navigation, headers, footers, sidebars
-- Ads, comments, modals, iframes
-- Scripts, styles
-
-**Paragraph detection:**
-- Tags: `P, LI, BLOCKQUOTE, H1-H6, TD, TH, PRE, FIGCAPTION, DT, DD`
-- Minimum text length: 10 characters
-- Each element tagged with `data-coreeder-idx`
-
----
-
-### 2. **scrollTracker.js** - Reading Progress Tracking
-**Responsibility:** Monitor which paragraphs user has scrolled past
-
-**Key functions:**
-- `initScrollTracker(paragraphElements)` - Start observing
-- `getLastReadIndex()` → number
-
-**Mechanism:**
-- IntersectionObserver with 50% threshold
-- Tracks highest-index paragraph that was ≥50% visible
-- State: `lastReadParagraphIndex`
-
----
-
-### 3. **highlightMapper.js** - Highlight Detection
-**Responsibility:** Map user selection to paragraph
-
-**Key functions:**
-- `mapHighlightToParagraph(selection, paragraphElements)` → `{ text, paragraphIndex }` or `null`
-
-**Strategy:**
-1. Check `data-coreeder-idx` attribute on anchor element
-2. Walk DOM tree upward looking for tagged element
-3. Find by containment in paragraph elements
-4. Last resort: text substring matching
-
----
-
-### 4. **promptBuilder.js** - Context Assembly
-**Responsibility:** Build LLM prompt from extracted content
-
-**Key functions:**
-- `buildPrompt({ paragraphs, highlightIndex, highlightedText, lastReadIndex, maxPriorParagraphs })` → string
-
-**Context boundaries:**
-- **Prior context:** From `max(0, highlightIndex - 30)` to `highlightIndex - 1`
-- **Highlighted:** Paragraph at `highlightIndex`
-- **Forward context:** Limited to `lastReadIndex + 2` (never include unread future content!)
-- **Max tokens:** 512 output
-
-**Prompt structure:**
-```
-[Instructions]
-[Previously Read Context]  ← Only includes read paragraphs
-[Highlighted Paragraph]
-[Highlighted Text]
-[Forward Context]         ← Reference only, respects read boundary
-[Your Explanation]
-```
-
----
-
-### 5. **aiService.js** - AI Integration
-**Responsibility:** Send prompt to Groq API, retrieve explanation
-
-**Key functions:**
-- `explainHighlight(prompt)` → Promise<string>
-
-**Groq Configuration:**
-- **Endpoint:** `https://api.groq.com/openai/v1/chat/completions`
-- **Model:** `openai/gpt-oss-120b` (configurable)
-- **Temperature:** 0.4 (low creativity for factual explanations)
-- **Max tokens:** 512
-
-**Request format:**
-```javascript
-{
-  model: 'openai/gpt-oss-120b',
-  messages: [{ role: 'user', content: prompt }],
-  temperature: 0.4,
-  max_tokens: 512
-}
-```
-
----
-
-### 6. **tooltip.js** - UI Display
-**Responsibility:** Show/hide explanation in a floating tooltip
-
-**Key functions:**
-- `showLoading(highlightedText)` - Show loading state
-- `showExplanation(explanation)` - Update with response
-- `showError(message)` - Show error message
-- `hideTooltip()` - Close tooltip
-
-**Features:**
-- Positioned near text selection
-- Flips above if near bottom of screen
-- Responsive scrolling container
-- Dismissible (close button, click outside, ESC key)
-- Glass-morphism design
-
----
-
-### 7. **background.js** - Message Relay
-**Responsibility:** Register context menu, relay messages
-
-**Flow:**
-1. On install: Register "Explain with CoReeder" context menu
-2. On right-click: Listen for menu click
-3. Send `EXPLAIN_SELECTION` message to content script
-
----
-
-### 8. **content.js** - Orchestrator
-**Responsibility:** Coordinate all modules, handle main flow
-
-**Key steps:**
-1. Initialize on page load
-2. Extract paragraphs using `contentExtractor.js`
-3. Start scroll tracking with `scrollTracker.js`
-4. Listen for explain requests from background
-5. Map selection using `highlightMapper.js`
-6. Build prompt with `promptBuilder.js`
-7. Call AI with `aiService.js`
-8. Display result with `tooltip.js`
-
----
-
-## State Management
-
-### Global State (in content.js)
-```javascript
-{
-  paragraphs: string[],              // All extracted paragraph texts
-  paragraphElements: Element[],       // Corresponding DOM elements
-  initialized: boolean                // Has extraction run?
-}
-```
-
-### Scroll Tracker State (in scrollTracker.js)
-```javascript
-{
-  lastReadParagraphIndex: number,     // Highest visible paragraph
-  observer: IntersectionObserver      // Active observer instance
-}
-```
-
-## Configuration Constants
-
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `MAX_PRIOR_PARAGRAPHS` | 30 | Limit context size for token efficiency |
-| `FORWARD_CONTEXT_COUNT` | 2 | Include next N paragraphs for reference |
-| `NOISE_SELECTORS` | [multiple] | Elements to remove during extraction |
-| `CONTENT_TAGS` | {P, LI, H1-H6, ...} | Tags that count as paragraphs |
-| `INTERSECTION_THRESHOLD` | 0.5 | % visible before marking as read |
-| `MIN_PARAGRAPH_LENGTH` | 10 | Minimum chars to be a valid paragraph |
-
-## Error Handling
-
-1. **No readable content found**
-   - Log to console
-   - Show error in tooltip
-
-2. **Highlight mapping failed**
-   - User selected non-article content
-   - Show error with guidance
-
-3. **AI API error**
-   - Network failure, auth failure, rate limit
-   - Show error message with status code
-   - User can retry
-
-## UX Flow
+## Explaining a highlight
 
 ```
-1. Page loads
-   └─ Extension initializes silently
-      └─ Content extracted & cached
-
-2. User scrolls
-   └─ Reading progress tracked automatically
-      └─ lastReadIndex updated
-
-3. User highlights text
-   └─ Selects passage of interest
-
-4. User right-clicks
-   └─ Sees "Explain with CoReeder" option
-      └─ Clicks it
-
-5. Extension explains
-   └─ Tooltip shows loading state
-   └─ Queries Groq API with context
-   └─ Displays explanation
-
-6. User reads explanation
-   └─ Can dismiss with close button, click outside, or ESC
+content script                 background worker              API                         OpenAI
+──────────────                 ─────────────────              ───                         ──────
+extract paragraphs
+track reading position
+user selects text → "Explain"
+build ExplainRequest ──port──▶ add Supabase token ──POST /api/explain──▶ verify token
+  (≤30 paragraphs before,                                     validate body (zod)
+   ≤1 past the reading line)                                  build prompt (server-side)
+                                                              cache hit? → stream it, no quota
+                                                              use 1 of 50 monthly (atomic)
+                                                              stream ───────────────────▶ chat.completions
+render tokens as they arrive ◀──port── forward SSE events ◀── SSE: delta… done ◀────────── stream
 ```
 
-## Security & Privacy
+- **The prompt is built only on the server** ([apps/api/src/prompt.ts](apps/api/src/prompt.ts)). Clients send structured fields, so the API can't be used as a general-purpose GPT proxy. Earlier context is dropped oldest-first to fit a 12k-character budget; the highlight is always kept.
+- **Responses stream** as server-sent events. The background worker reads the stream and forwards it over a runtime port. Closing the tooltip disconnects the port, which aborts the upstream request.
+- **Quota** is one row per user per month in `usage`, incremented with a single conditional upsert, so concurrent requests can't go over the limit. Failed model calls are refunded.
+- **Cache**: identical prompts (same model, prompt version and text) are answered from `explanation_cache` and don't count toward the limit.
 
-- **No external trackers:** Only sends to Groq API
-- **No persistent storage:** Everything in-memory
-- **No user data:** Doesn't persist highlights or explanations
-- **No cross-domain:** Only works on current tab
-- **API key:** Stored in source (for local testing; should use backend for production)
+## Saving and reading progress
 
-## Performance Considerations
+- The floating button saves the article (`POST /api/articles`): the normalized URL, title and all paragraphs. Summary and category are generated in the background, so saving returns immediately.
+- URLs are normalized (lowercase host, no fragment or `utm_*`/`fbclid` parameters, no trailing slash), so the same article saved from different links is stored once.
+- When the tab is hidden or closed, or the single-page app navigates, the content script reports progress: the furthest paragraph reached plus its opening words. The background worker forwards this only for URLs it knows are saved, so ordinary browsing never sends anything.
+- Progress only moves forward. The library shows a progress bar and a "Continue reading" link with a [text fragment](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Fragment/Text_fragments) (`#:~:text=…`) that scrolls straight back to that paragraph.
 
-- **Lazy initialization:** Extract only when needed
-- **Cached paragraphs:** Avoid re-extracting on multiple explains
-- **Limited context:** Max 30 prior + 2 forward paragraphs
-- **IntersectionObserver:** Efficient scroll tracking (native browser API)
-- **Token limits:** 512 max output for fast responses
+## Reading position
 
-## Future Enhancements
+[apps/extension/lib/readingTracker.ts](apps/extension/lib/readingTracker.ts) counts a paragraph as reached when it crosses a reading line 45% down the viewport. Unlike a "50% visible" rule, this works for blocks taller than the screen. Paragraphs on the last screen are counted once the reader reaches the bottom of the page.
 
-1. **Backend relay:** Move API key to backend to avoid exposure
-2. **Caching:** Store explanations for repeated highlights
-3. **Multi-language:** Translate explanations to user's language
-4. **Settings UI:** Let users configure context size, model selection
-5. **Keyboard shortcuts:** Alt+X to explain without right-click
-6. **Reading history:** Show what user has already explained
-7. **Explain full paragraph:** Extend beyond highlight to full containing paragraph
+## Extension structure
+
+```
+entrypoints/background.ts       context menu, messages, auth, API calls (holds the token)
+entrypoints/content/index.ts    on-page UI in a Shadow DOM, extraction, tracking
+entrypoints/popup/              sign in/out, open library
+lib/extractor.ts                paragraph extraction (reads the live DOM, never copies or mutates it)
+lib/context.ts                  selection → paragraph, ExplainRequest builder
+lib/auth.ts                     Supabase Google sign-in via chrome.identity.launchWebAuthFlow
+lib/api.ts, lib/sse.ts          API client and streaming parser
+lib/ui/                         launcher, selection pill, tooltip
+```
+
+The UI lives in a shadow root, so page CSS can't break it and its CSS can't leak into the page. Content scripts never see auth tokens; all API calls go through the background worker.
+
+## Auth
+
+Supabase Auth with Google. The extension and the web app each hold their own Supabase session and send the access token as a bearer token. The API verifies it with `jose` against the project's JWKS (or the legacy HS256 secret) and upserts the user by their Supabase user id.
+
+## Data model
+
+| Table | Purpose |
+| --- | --- |
+| `users` | Supabase user id → email |
+| `usage` | Explanations used per user per month |
+| `articles` | One row per normalized URL: title, content, summary, category, summary status |
+| `saved_articles` | A user's library, with reading progress |
+| `shares` | Public share tokens, one per user + category |
+| `explanation_cache` | Cached explanations keyed by a prompt hash |
+| `waitlist` | Landing-page signups |
+| `legacy_*` | Tables from the email-based v1 schema, kept for reference |
+
+Migrations are plain SQL files in [apps/api/migrations](apps/api/migrations), applied in order on startup and recorded in `schema_migrations`.

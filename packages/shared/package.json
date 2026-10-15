@@ -1,0 +1,18 @@
+{
+  "name": "@coreeder/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Types and helpers shared by the CoReeder API, extension and web app. Dependency-free; apps import it through the @coreeder/shared path alias.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.0"
+  }
+}
