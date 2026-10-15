@@ -1,0 +1,103 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  width: 300px;
+  color: #ffffff;
+  background: #000000;
+  font-family: 'ABC Marfa', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.09px;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.popup-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.popup-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.popup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 16px;
+}
+
+.popup-body p {
+  margin: 0;
+}
+
+.muted {
+  color: #888888;
+  font-size: 12px;
+}
+
+.email {
+  margin-bottom: 8px !important;
+  overflow-wrap: anywhere;
+}
+
+.error {
+  color: #ef4444;
+  font-size: 13px;
+}
+
+.button {
+  height: 34px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease;
+}
+
+.button:active {
+  transform: scale(0.97);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.button.primary {
+  border: none;
+  color: #000000;
+  background: #ffffff;
+}
+
+.button.primary:hover {
+  opacity: 0.9;
+}
+
+.button.secondary {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  background: transparent;
+}
+
+.button.secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.button:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+}

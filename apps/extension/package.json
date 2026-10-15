@@ -1,0 +1,24 @@
+{
+  "name": "@coreeder/extension",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CoReeder browser extension: context-aware explanations for what you're reading.",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "test": "vitest run",
+    "typecheck": "wxt prepare && tsc --noEmit",
+    "postinstall": "wxt prepare"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.0",
+    "happy-dom": "^20.0.0",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.0",
+    "wxt": "^0.20.0"
+  }
+}

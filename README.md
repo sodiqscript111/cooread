@@ -1,160 +1,78 @@
-# CoReeder - Quick Start Guide
+# CoReeder
 
-## 30-Second Setup
-
-1. Open Chrome → `chrome://extensions/`
-2. Enable **Developer mode** (top right)
-3. Click **Load unpacked** → Select `coreeder` folder
-4. Done! CoReeder is now active
-
-## 1-Minute First Use
-
-1. Go to any article (Medium, Dev.to, etc.)
-2. **Scroll down** to read some paragraphs
-3. **Highlight** any text you want explained
-4. **Right-click** → "Explain with CoReeder"
-5. **Read** the explanation in the tooltip
-
-## How It Works
+Understanding, built into the web. Highlight anything you're reading and CoReeder explains it using only what you've already read. Save articles to a library that remembers where you stopped.
 
 ```
-Your Browser                    CoReeder                    Groq API
-    │                              │                            │
-    ├─ You read article ──────────→ Extracts & tracks ─ ─ ─ ─ ─ ─
-    │                              │
-    ├─ You highlight text ─────────→ Maps to paragraph
-    │                              │
-    ├─ Right-click explain ────────→ Builds context (only read parts!)
-    │                              │
-    ├─ ← ← ← ← ← ← ← ← ← ← Show tooltip ← ← Explanation ← ← ← ├─ Generates answer
-    │                              │
-    └─ You read explanation        └─────────────────────────────
+apps/extension   Browser extension (WXT + TypeScript)
+apps/api         API: explanations, library, progress, sharing (Express + Postgres)
+apps/web         Website: landing page (/), library (/app), shared libraries (/shared/:token)
+packages/shared  Types and URL helpers used by all three
 ```
 
-## Key Feature: Respects What You've Already Read
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together.
 
-- Extension tracks your scroll position
-- When you click "Explain", it builds context ONLY from paragraphs you've already scrolled past
-- Never includes future unread content in the explanation
-- This keeps explanations grounded in what you know so far
+## Prerequisites
 
-## Configuration
+- Node.js 22+
+- A Postgres database (local Docker is fine)
+- An OpenAI API key
+- A Supabase project for Google sign-in (free tier works)
 
-### Want smaller context window?
-Edit `src/promptBuilder.js`:
-```javascript
-const MAX_PRIOR_PARAGRAPHS = 15;  // Instead of 30
+## Setup
+
+```bash
+npm install
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+cp apps/extension/.env.example apps/extension/.env
 ```
 
-### Want faster but less creative answers?
-Edit `src/aiService.js`:
-```javascript
-temperature: 0.2,  // Lower is more factual
+Fill in the three `.env` files, then:
+
+```bash
+npm run dev:api        # http://localhost:3000 (runs migrations on start)
+npm run dev:web        # http://localhost:5173
+npm run dev:extension  # opens Chrome with the extension loaded and hot reload
 ```
 
-### Want to see debug info?
-Open DevTools Console (F12) and type:
-```javascript
-__coreederParagraphs        // All paragraphs extracted
-__coreederLastReadIndex      // How far you've scrolled
+A local database:
+
+```bash
+docker run -d --name coreeder-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=coreeder -p 5432:5432 postgres:17
 ```
 
-## Common Questions
+Use `DATABASE_URL=postgres://postgres:postgres@localhost:5432/coreeder` and `DATABASE_SSL=false`.
 
-**Q: Why did it explain something I haven't read yet?**
-A: You highlighted text from a paragraph you haven't scrolled past. The extension allows this but notes it in the system prompt.
+### Supabase sign-in
 
-**Q: Does it work on all websites?**
-A: Most websites with article-style content (Medium, news sites, blogs). Won't work on JavaScript-heavy single-page apps without structured content.
+1. **Authentication → Providers → Google**: enable it with a Google OAuth client.
+2. **Authentication → URL Configuration → Redirect URLs**, add:
+   - `https://*.chromiumapp.org/**` (the extension's sign-in redirect)
+   - `http://localhost:5173/app` and your production `https://<web-domain>/app`
+3. **Project Settings → API**: copy the project URL and anon key into the extension and web `.env` files, and the project URL into `apps/api/.env` as `SUPABASE_URL`. The API verifies tokens with the project's JWKS. Older projects that still sign with the legacy HS256 secret should also set `SUPABASE_JWT_SECRET`.
 
-**Q: Will my reading be tracked somewhere?**
-A: No. Everything happens locally in your browser. The only thing sent to Groq API is: the text context + your highlight (for that one request). No history stored.
+## Scripts
 
-**Q: Can I customize the tooltip appearance?**
-A: Yes. Edit `src/tooltip.css` to change colors, size, animations, etc.
+Run from the repo root:
 
-**Q: What if the API fails?**
-A: You'll see an error message in the tooltip. Just try again.
+| Command | What it does |
+| --- | --- |
+| `npm test` | All unit and integration tests (the API tests use an in-memory Postgres) |
+| `npm run typecheck` | TypeScript and svelte-check across the workspace |
+| `npm run build` | Production builds of every app |
+| `npm run zip -w @coreeder/extension` | Packages the extension for the Chrome Web Store |
 
-## Troubleshooting
+CI runs typecheck, tests and builds on every push and pull request, and uploads the packaged extension as an artifact.
 
-| Problem | Solution |
-|---------|----------|
-| "Could not extract readable content" | Try a different page with structured article content |
-| "Could not identify highlighted text" | Highlight text from the article body, not headers/footers |
-| API error (401, 403) | Check Groq API key in `background.js` |
-| Tooltip not showing | Reload the page (F5) and try again |
-| Extension not loading | Check `manifest.json` is valid (jsonlint.com) |
+## Deploying
 
-## Advanced: Using with Backend
+Deploy each app from the **repository root** so npm workspaces resolve:
 
-For production, replace the API key logic in `src/aiService.js`:
+| App | Build command | Start command |
+| --- | --- | --- |
+| API | `npm ci && npm run build -w @coreeder/api` | `npm run start -w @coreeder/api` |
+| Web | `npm ci && npm run build -w @coreeder/web` | `npm run start -w @coreeder/web` |
 
-```javascript
-// Instead of:
-const API_URL = 'https://api.groq.com/openai/v1/chat/completions'
+The API applies pending database migrations on startup. The first deploy renames the old email-based tables to `legacy_*` and creates the new schema (see `apps/api/migrations/`).
 
-// Use:
-const API_URL = 'https://your-backend.com/api/explain'
-
-// Then your backend forwards securely to Groq API
-// This way your API key never leaves your server
-```
-
-## Architecture Overview
-
-```
-contentExtractor.js  ← Pulls article text
-         ↓
-scrollTracker.js     ← Tracks your reading
-         ↓
-highlightMapper.js   ← Finds your selection
-         ↓
-promptBuilder.js     ← Builds context (respecting read position)
-         ↓
-aiService.js         ← Sends to Groq API
-         ↓
-tooltip.js           ← Shows explanation
-```
-
-## Next Steps
-
-1. ✅ Load extension (see above)
-2. ✅ Test on your favorite article
-3. 📖 Read [ARCHITECTURE.md](ARCHITECTURE.md) for deep dive
-4. 🧪 See [TESTING.md](TESTING.md) for more test scenarios
-5. 🚀 Deploy to production (move API key to backend first!)
-
-## File Structure
-
-```
-coreeder/
-├── manifest.json              ← Chrome extension config
-├── background.js              ← Context menu handler
-├── generate_icons.js          ← Icon generator
-├── src/
-│   ├── content.js             ← Main orchestrator
-│   ├── contentExtractor.js    ← Text extraction
-│   ├── scrollTracker.js       ← Reading progress
-│   ├── highlightMapper.js     ← Selection to paragraph
-│   ├── promptBuilder.js       ← Context assembly
-│   ├── aiService.js           ← Groq API
-│   ├── tooltip.js             ← UI display
-│   └── tooltip.css            ← Styling
-├── icons/                     ← Extension icons
-├── ARCHITECTURE.md            ← Detailed design
-├── TESTING.md                 ← Test guide
-├── IMPLEMENTATION_SUMMARY.md  ← What was built
-└── README.md                  ← This file
-```
-
-## Support
-
-- Check console errors (DevTools → F12 → Console)
-- Try on a different article
-- Review error messages in tooltip
-- See [TESTING.md](TESTING.md) for troubleshooting section
-
----
-
-**Ready? Load the extension and start explaining!** 🚀
+Environment variables are listed in each app's `.env.example`. The web app reads its `PUBLIC_*` variables at runtime, so changing them doesn't need a rebuild. The extension's `WXT_*` variables are baked in at build time.
